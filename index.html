@@ -299,11 +299,11 @@ async function buscarStock(num){
   return r.ok ? r.data : null;
 }
 
-async function lookupDesdeCodigo(e){
-  if(e.key!=='Enter' && e.key!=='Tab') return;
-  e.preventDefault();
+/* ==== NUEVO: función común para completar desde código ==== */
+async function llenarDesdeCodigo(){
   const code = (qs('#inpCodigo').value||'').trim();
-  if(!code){ qs('#inpDesc').focus(); return; }
+  if(!code) return;
+
   showFinding();
   try{
     const it = await buscarStock(code);
@@ -312,7 +312,17 @@ async function lookupDesdeCodigo(e){
       setFormatted(qs('#inpUnit'), String(parseInt(it.precio||0,10)));
       recalcDosMedios();
     }
-  } finally { hideFinding(); qs('#inpDesc').focus(); }
+  }finally{
+    hideFinding();
+  }
+}
+
+/* antes solo manejaba Enter/Tab; ahora usa llenarDesdeCodigo */
+async function lookupDesdeCodigo(e){
+  if(e.key!=='Enter' && e.key!=='Tab') return;
+  e.preventDefault();
+  await llenarDesdeCodigo();
+  qs('#inpDesc').focus();
 }
 
 /* ===== Dos medios de pago (UI) ===== */
@@ -458,7 +468,11 @@ function init(){
   attachMoneyMask('#monto2'); // aunque sea readonly, asegura formato si se setea por código
   attachMoneyMask('#montoMov');
 
+  // PC: Enter/Tab
   qs('#inpCodigo').addEventListener('keydown', lookupDesdeCodigo);
+  // Celular / tablet: al salir del campo también busca stock
+  qs('#inpCodigo').addEventListener('blur', ()=>{ llenarDesdeCodigo(); });
+
   qs('#inpDesc').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); qs('#inpUnit').focus(); }});
 
   qs('#fdp').addEventListener('change', ()=>{ toggleTwoPay(); recalcDosMedios(); });
